@@ -1765,7 +1765,10 @@ async function handle(text) {
   let picks = null, lead = null, modelWhy = new Map(), dropped = 0;
   if (MODEL_ON) {
     const out = await askModel(text).catch(() => null);
-    if (out && out.on_topic === false) {
+    // Advisory only. The model tends to read "I have no school data" as "not my
+    // subject"; a stated budget or area says otherwise, and the local signal is
+    // the more reliable judge of whether this is a property question at all.
+    if (out && out.on_topic === false && topicSignals(text, c) < 2) {
       refuse();
       AI.busy = false; $('#aiSend').disabled = false; return;
     }
@@ -1806,6 +1809,16 @@ async function handle(text) {
   if (dropped)
     say(`<span class="muted-note">${L(`（有 ${dropped} 个模型给的区入门价超出预算，已剔除）`,
                                       `(${dropped} suggestion(s) priced above the budget were dropped)`)}</span>`);
+
+  const usable = c.budget || c.beds || c.zones.length || c.maxKm ||
+                 c.wants.some(w => w !== 'cheap') || c.wants.includes('cheap');
+  if (!picks && !usable && c.missing.length) {
+    say(L('我能按<b>价格、户型、地块大小、离市中心距离、租金回报、成交活跃度</b>帮你筛。' +
+          '给个预算或大致区域，我就能开始。',
+          'What I can filter on: <b>price, bedroom mix, section size, distance to the city, ' +
+          'rental yield and how actively a suburb trades</b>. Give me a budget or an area and I can start.'));
+    AI.busy = false; $('#aiSend').disabled = false; return;
+  }
 
   // Rules produce the answer whenever the model did not.
   if (!picks) {
