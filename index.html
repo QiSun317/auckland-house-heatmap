@@ -1777,7 +1777,7 @@ async function handle(text) {
         zones: c.zones.length ? c.zones : (out.criteria.zones || []),
         wants: [...new Set([...(c.wants || []), ...(out.criteria.wants || [])])],
       });
-      lead = out.lead || null;
+      lead = (out.lead && claimsCheckOut(out.lead)) ? out.lead : null;
       picks = [];
       for (const p of out.picks) {
         const x = byName.get(p.name);
@@ -1788,7 +1788,8 @@ async function handle(text) {
         const r = scoreSuburb(x, { ...c, zones: [], suburbs: [], maxKm: null, wants: [] })
                   || { s: x, a: affordShare(x, c.budget), bs: 0, prefScore: 0, total: 0 };
         picks.push(r);
-        if (p.why && figuresCheckOut(p.why, factsFor(p.name))) modelWhy.set(p.name, p.why);
+        if (p.why && figuresCheckOut(p.why, factsFor(p.name)) && claimsCheckOut(p.why))
+          modelWhy.set(p.name, p.why);
       }
       if (!picks.length) picks = null;
     } else if (!out) {
@@ -1909,6 +1910,17 @@ function figuresCheckOut(text, facts) {
     if (!near(v, nums, v >= 1000 ? moneyTol : smallTol)) return false;
   }
   return true;
+}
+
+// The dataset has no school, crime, demographic or hazard data, and the page
+// says so. A model that then calls a suburb a "top school zone" from its own
+// training is contradicting that in the same breath — authoritative-sounding and
+// unverifiable, which is worse than a wrong number. Figures are checked
+// numerically; this checks the claims.
+const UNGROUNDED = /学区|学校|名校|私校|公立|校网|中学|小学|decile|school|治安|安全|犯罪|crime|safe|华人|亚裔|族裔|ethnic|chinese communit|洪水|水浸|滑坡|flood|landslide|地震|医院|hospital|富人区|高档|档次|口碑|声誉|prestig|reputab|affluent|desirable/i;
+
+function claimsCheckOut(text) {
+  return !UNGROUNDED.test(text);
 }
 
 async function askModel(text) {
