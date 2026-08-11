@@ -1646,7 +1646,9 @@ function topicSignals(text, c) {
   if (c.zones.length || c.suburbs.length) n += 2;
   if (c.maxKm) n++;
   n += c.wants.length;
-  n += c.missing.length;                       // asking about schools is on topic
+  // Asking about schools, crime or flood risk IS a property question — it is one
+  // this dataset cannot answer, which is a different thing from off topic.
+  n += c.missing.length * 2;
   for (const w of TOPIC_WORDS) if (t.includes(w)) { n++; break; }
   return n;
 }
@@ -1810,8 +1812,7 @@ async function handle(text) {
     say(`<span class="muted-note">${L(`（有 ${dropped} 个模型给的区入门价超出预算，已剔除）`,
                                       `(${dropped} suggestion(s) priced above the budget were dropped)`)}</span>`);
 
-  const usable = c.budget || c.beds || c.zones.length || c.maxKm ||
-                 c.wants.some(w => w !== 'cheap') || c.wants.includes('cheap');
+  const usable = c.budget || c.beds || c.zones.length || c.maxKm || c.wants.length;
   if (!picks && !usable && c.missing.length) {
     say(L('我能按<b>价格、户型、地块大小、离市中心距离、租金回报、成交活跃度</b>帮你筛。' +
           '给个预算或大致区域，我就能开始。',
