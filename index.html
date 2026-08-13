@@ -1949,6 +1949,24 @@ function figuresCheckOut(text, facts) {
   return true;
 }
 
+// Two tiers. The hard list is what the page has told the reader it does not
+// have: a confident line about school zones or crime is the failure that
+// matters, and no encyclopaedia paragraph makes it sourced. The soft list is
+// character — "affluent", "sought after" — which the intro genuinely can
+// support, so it is allowed only when that suburb's own intro backs it.
+const HARD_BLOCK = /学区|学校|名校|私校|校网|中学|小学|decile|school|治安|安全|犯罪|crime|safe|华人|亚裔|族裔|ethnic|chinese communit|洪水|水浸|滑坡|flood|landslide|地震|earthquake/i;
+const SOFT_CLAIM = /富人区|高档|档次|口碑|声誉|富裕|上流|prestig|reputab|affluent|wealthy|desirable|sought.after|exclusive|upmarket/i;
+const SOFT_SOURCE = /affluent|wealthy|prosperous|expensive|exclusive|prestigious|sought|upmarket|renowned|famous|noted for|known for|leafy|desirable/i;
+
+function claimsCheckOut(text, name) {
+  if (HARD_BLOCK.test(text)) return false;
+  if (SOFT_CLAIM.test(text)) {
+    const about = name && byName.get(name)?.w?.extract;
+    if (!about || !SOFT_SOURCE.test(about)) return false;
+  }
+  return true;
+}
+
 async function askModel(text) {
   const res = await fetch(DATA.proxy, {
     method: 'POST',
